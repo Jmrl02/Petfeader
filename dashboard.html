@@ -346,7 +346,7 @@
     <button class="nav-tab" onclick="showSection('atuadores')">Atuadores</button>
   </div>
   <div class="nav-config">
-    <input id="api-url-input" type="text" placeholder="https://pet-feeder-api.onrender.com/api" />
+    <input id="api-url-input" type="text" placeholder="https://pet-feeder-api.onrender.com" />
     <input id="api-key-input" type="password" placeholder="API Key" />
     <button id="save-config" onclick="saveConfig()">Guardar</button>
   </div>
@@ -354,7 +354,6 @@
 
 <main>
 
-  <!-- ── VISÃO GERAL ── -->
   <section id="section-overview" class="section active">
     <div class="stats-grid">
       <div class="stat-card">
@@ -397,7 +396,6 @@
     </div>
   </section>
 
-  <!-- ── DISPOSITIVOS ── -->
   <section id="section-dispositivos" class="section">
     <div class="card">
       <div class="card-header">
@@ -446,7 +444,6 @@
     </div>
   </section>
 
-  <!-- ── ANIMAIS ── -->
   <section id="section-animais" class="section">
     <div class="card">
       <div class="card-header">
@@ -499,7 +496,6 @@
     </div>
   </section>
 
-  <!-- ── LEITURAS ── -->
   <section id="section-leituras" class="section">
     <div class="card">
       <div class="card-header">
@@ -529,7 +525,6 @@
     </div>
   </section>
 
-  <!-- ── ATUADORES ── -->
   <section id="section-atuadores" class="section">
     <div class="actuator-grid">
       <div class="actuator-card a">
@@ -577,8 +572,8 @@ document.getElementById('api-url-input').value = API_URL;
 document.getElementById('api-key-input').value = API_KEY;
 
 function saveConfig() {
-  API_URL = document.getElementById('api-url-input').value.replace(/\/$/, '');
-  API_KEY = document.getElementById('api-key-input').value;
+  API_URL = document.getElementById('api-url-input').value.trim().replace(/\/$/, '');
+  API_KEY = document.getElementById('api-key-input').value.trim();
   localStorage.setItem('pf_url', API_URL);
   localStorage.setItem('pf_key', API_KEY);
   toast('Configuração guardada.', 'ok');
@@ -600,9 +595,41 @@ async function api(path, method = 'GET', body = null) {
       headers: { 'X-API-KEY': API_KEY, 'Content-Type': 'application/json' }
     };
     if (body) opts.body = JSON.stringify(body);
-    const r = await fetch(API_URL + path, opts);
+    
+    const apiPath = path.startsWith('/api') ? path : '/api' + path;
+    const fullUrl = API_URL + apiPath;
+    
+    const r = await fetch(fullUrl, opts);
+    
+    const contentType = r.headers.get("content-type");
+    if (contentType && contentType.includes("text/html")) {
+       toast('Erro de rota: O servidor respondeu com HTML. Verifica o URL no topo.', 'err');
+       return null;
+    }
+
     const data = await r.json();
     if (!r.ok) { toast(data.erro || 'Erro ' + r.status, 'err'); return null; }
+    
+    // CORREÇÃO ESSENCIAL: Se o endpoint for /dispositivos, converte o dicionário do Flask num Array utilizável
+    if (path === '/dispositivos' && data && !Array.isArray(data)) {
+      return Object.keys(data).map(id => ({
+        device_id: id,
+        localizacao: data[id].localizacao || 'Desconhecida',
+        status: data[id].status || 'offline',
+        last_seen: data[id].last_seen || null,
+        total_leituras: data[id].total_leituras || 0
+      }));
+    }
+    
+    // O mesmo tratamento aplica-se a /animais se o teu app.py também o guardar como dicionário
+    if (path === '/animais' && data && !Array.isArray(data)) {
+      return Object.keys(data).map(card_id => ({
+        card_id: card_id,
+        nome: data[card_id].nome || 'Sem Nome',
+        comida: data[card_id].comida || 'A'
+      }));
+    }
+
     return data;
   } catch (e) {
     toast('Erro de ligação: ' + e.message, 'err');
@@ -625,7 +652,7 @@ function showSection(name) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('section-' + name).classList.add('active');
-  event.target.classList.add('active');
+  if(event) event.target.classList.add('active');
   if (name === 'overview') loadOverview();
   if (name === 'dispositivos') loadDispositivos();
   if (name === 'animais') loadAnimais();
@@ -638,13 +665,14 @@ async function loadOverview() {
     api('/animais'),
     api('/leituras')
   ]);
+  
   if (devs) {
     document.getElementById('stat-dispositivos').textContent = devs.length;
     const html = devs.length === 0
       ? '<div class="empty">Sem dispositivos.</div>'
       : devs.map(d => `
         <div class="log-entry">
-          <div class="log-dot ${d.last_seen ? 'ok' : 'err'}"></div>
+          <div class="log-dot ${d.status === 'online' ? 'ok' : 'err'}"></div>
           <div style="flex:1">
             <div style="font-weight:500">${d.localizacao}</div>
             <div style="font-size:11px;color:var(--hint)">${shortId(d.device_id)}</div>
@@ -656,7 +684,9 @@ async function loadOverview() {
         </div>`).join('');
     document.getElementById('devices-status').innerHTML = html;
   }
+  
   if (animais) document.getElementById('stat-animais').textContent = animais.length;
+  
   if (leituras) {
     document.getElementById('stat-leituras').textContent = leituras.length;
     const hoje = leituras.filter(l => new Date(l.timestamp).toDateString() === new Date().toDateString()).length;
@@ -692,7 +722,7 @@ async function loadDispositivos() {
     <tr>
       <td><code style="font-size:11px">${d.device_id}</code></td>
       <td>${d.localizacao}</td>
-      <td><span class="badge badge-ok">${d.status}</span></td>
+      <td><span class="badge ${d.status === 'online' ? 'badge-ok' : 'badge-err'}">${d.status}</span></td>
       <td>${fmtDate(d.last_seen)}</td>
       <td>${d.total_leituras || 0}</td>
       <td>
@@ -706,7 +736,12 @@ async function adicionarDispositivo() {
   const localizacao = document.getElementById('new-device-loc').value.trim();
   if (!device_id) { toast('Introduz o Device ID.', 'err'); return; }
   const r = await api('/dispositivos', 'POST', { device_id, localizacao });
-  if (r) { toast('Dispositivo registado com sucesso.', 'ok'); loadDispositivos(); }
+  if (r) { 
+    toast('Dispositivo registado com sucesso.', 'ok'); 
+    document.getElementById('new-device-id').value = '';
+    document.getElementById('new-device-loc').value = '';
+    loadDispositivos(); 
+  }
 }
 
 async function removerDispositivo(id) {
@@ -737,7 +772,12 @@ async function adicionarAnimal() {
   const comida = document.getElementById('new-animal-comida').value;
   if (!card_id || !nome) { toast('Preenche o Card ID e o nome.', 'err'); return; }
   const r = await api('/animais', 'POST', { card_id, nome, comida });
-  if (r) { toast(`${nome} associado com sucesso.`, 'ok'); loadAnimais(); }
+  if (r) { 
+    toast(`${nome} associado com sucesso.`, 'ok');
+    document.getElementById('new-animal-card').value = '';
+    document.getElementById('new-animal-nome').value = '';
+    loadAnimais(); 
+  }
 }
 
 async function loadLeituras() {
@@ -760,16 +800,33 @@ async function loadLeituras() {
 }
 
 async function acionarAtuador(tipo) {
-  const r = await api('/atuador/alimentar', 'POST', { comida: tipo });
+  const devs = await api('/dispositivos');
+  if (!devs || devs.length === 0) {
+    toast('Tens de registar e ligar pelo menos um dispositivo primeiro.', 'err');
+    return;
+  }
+  const targetDevice = devs[0].device_id;
+
+  const r = await api('/atuador/alimentar', 'POST', { 
+    comida: tipo,
+    device_id: targetDevice
+  });
   if (r) {
-    toast(`${r.mensagem}`, 'ok');
+    toast(`Comando enviado para o alimentador ${tipo}!`, 'ok');
     appendAtuadorLog(`Alimentador ${tipo} acionado manualmente`, 'ok');
   }
 }
 
 async function resetAtuadores() {
   if (!confirm('Confirmas o corte de emergência de todos os atuadores?')) return;
-  const r = await api('/atuador/reset', 'POST');
+  const devs = await api('/dispositivos');
+  if (!devs || devs.length === 0) {
+    toast('Nenhum dispositivo mapeado encontrado.', 'err');
+    return;
+  }
+  const targetDevice = devs[0].device_id;
+
+  const r = await api('/atuador/reset', 'POST', { device_id: targetDevice });
   if (r) {
     toast('Corte enviado. Atuadores desligados.', 'ok');
     appendAtuadorLog('Reset de emergência executado', 'err');
