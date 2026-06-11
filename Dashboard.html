@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PetFeeder — Painel de Controlo</title>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.08);
+    --border-md: rgba(0,0,0,0.15);
+    --text: #1a1a18;
+    --muted: #6b6b67;
+    --hint: #9c9c98;
+    --teal-bg: #e1f5ee;
+    --teal: #0f6e56;
+    --teal-mid: #1d9e75;
+    --coral-bg: #faece7;
+    --coral: #993c1d;
+    --coral-mid: #d85a30;
+    --amber-bg: #faeeda;
+    --amber: #854f0b;
+    --amber-mid: #ba7517;
+    --purple-bg: #eeedfe;
+    --purple: #534ab7;
+    --success-bg: #eaf3de;
+    --success: #3b6d11;
+    --danger-bg: #fcebeb;
+    --danger: #a32d2d;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── NAV ── */
+  nav {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .nav-brand {
+    font-size: 15px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .nav-brand-icon {
+    width: 28px; height: 28px;
+    background: var(--teal-bg);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--teal);
+    font-size: 15px;
+  }
+  .nav-tabs { display: flex; gap: 2px; flex: 1; }
+  .nav-tab {
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: none;
+    transition: background 0.15s, color 0.15s;
+  }
+  .nav-tab:hover { background: var(--bg); color: var(--text); }
+  .nav-tab.active { background: var(--bg); color: var(--text); font-weight: 500; }
+  .nav-config {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #api-url-input {
+    font-size: 12px;
+    padding: 5px 10px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    width: 220px;
+  }
+  #api-key-input {
+    font-size: 12px;
+    padding: 5px 10px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    width: 160px;
+  }
+  #save-config {
+    padding: 5px 12px;
+    font-size: 12px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    cursor: pointer;
+    color: var(--text);
+  }
+  #save-config:hover { background: var(--bg); }
+
+  /* ── LAYOUT ── */
+  main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── STAT CARDS ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .stat-value { font-size: 26px; font-weight: 500; }
+  .stat-value.teal { color: var(--teal-mid); }
+  .stat-value.coral { color: var(--coral-mid); }
+  .stat-value.amber { color: var(--amber-mid); }
+  .stat-value.purple { color: var(--purple); }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .card-title { font-size: 14px; font-weight: 500; }
+  .card-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ── TABLES ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 0.5px solid var(--border);
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 0.5px solid var(--border);
+    color: var(--text);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg); }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-flex; align-items: center;
+    font-size: 11px; font-weight: 500;
+    padding: 2px 8px; border-radius: 100px;
+  }
+  .badge-ok { background: var(--success-bg); color: var(--success); }
+  .badge-err { background: var(--danger-bg); color: var(--danger); }
+  .badge-a { background: var(--teal-bg); color: var(--teal); }
+  .badge-b { background: var(--purple-bg); color: var(--purple); }
+
+  /* ── FORMS ── */
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  label { font-size: 12px; color: var(--muted); }
+  input, select {
+    padding: 8px 10px;
+    font-size: 13px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--teal-mid); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border-md);
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--text);
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--bg); }
+  .btn-primary {
+    background: var(--teal-mid);
+    color: white;
+    border-color: var(--teal-mid);
+  }
+  .btn-primary:hover { background: var(--teal); border-color: var(--teal); }
+  .btn-danger {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+  .btn-danger:hover { background: #f7c1c1; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-icon { padding: 5px 8px; }
+
+  /* ── ACTUATOR PANEL ── */
+  .actuator-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .actuator-card {
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+  }
+  .actuator-card.a { background: var(--teal-bg); }
+  .actuator-card.b { background: var(--purple-bg); }
+  .actuator-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+  }
+  .actuator-name { font-weight: 500; font-size: 15px; margin-bottom: 4px; }
+  .actuator-desc { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+  .actuator-card.a .actuator-name { color: var(--teal); }
+  .actuator-card.b .actuator-name { color: var(--purple); }
+  .btn-trigger-a {
+    background: var(--teal-mid); color: white; border-color: var(--teal-mid);
+    width: 100%;
+  }
+  .btn-trigger-a:hover { background: var(--teal); }
+  .btn-trigger-b {
+    background: var(--purple); color: white; border-color: var(--purple);
+    width: 100%;
+  }
+  .btn-trigger-b:hover { background: #3c3489; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--text);
+    color: white;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 100;
+  }
+  #toast.show { opacity: 1; }
+  #toast.ok { background: var(--success); }
+  #toast.err { background: var(--danger); }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* ── LOG STREAM ── */
+  .log-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 13px;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+  .log-dot.ok { background: var(--teal-mid); }
+  .log-dot.err { background: var(--coral-mid); }
+  .log-time { font-size: 11px; color: var(--hint); white-space: nowrap; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) {
+    .two-col { grid-template-columns: 1fr; }
+    .actuator-grid { grid-template-columns: 1fr; }
+    nav { gap: 12px; flex-wrap: wrap; height: auto; padding: 10px 16px; }
+    .nav-config { flex-wrap: wrap; }
+    #api-url-input { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="#">
+    <div class="nav-brand-icon">🐾</div>
+    PetFeeder
+  </a>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showSection('overview')">Visão geral</button>
+    <button class="nav-tab" onclick="showSection('dispositivos')">Dispositivos</button>
+    <button class="nav-tab" onclick="showSection('animais')">Animais</button>
+    <button class="nav-tab" onclick="showSection('leituras')">Leituras</button>
+    <button class="nav-tab" onclick="showSection('atuadores')">Atuadores</button>
+  </div>
+  <div class="nav-config">
+    <input id="api-url-input" type="text" placeholder="https://pet-feeder-api.onrender.com/api" />
+    <input id="api-key-input" type="password" placeholder="API Key" />
+    <button id="save-config" onclick="saveConfig()">Guardar</button>
+  </div>
+</nav>
+
+<main>
+
+  <!-- ── VISÃO GERAL ── -->
+  <section id="section-overview" class="section active">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Dispositivos ativos</div>
+        <div class="stat-value teal" id="stat-dispositivos">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Animais registados</div>
+        <div class="stat-value purple" id="stat-animais">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Leituras totais</div>
+        <div class="stat-value amber" id="stat-leituras">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Acessos hoje</div>
+        <div class="stat-value coral" id="stat-hoje">—</div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Últimas leituras</div>
+            <div class="card-subtitle">Atividade recente do sensor RFID</div>
+          </div>
+          <button class="btn btn-sm" onclick="loadOverview()">↺ Atualizar</button>
+        </div>
+        <div id="log-stream"><div class="empty">Sem dados. Configura a API acima.</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Estado dos dispositivos</div>
+            <div class="card-subtitle">Last-seen e contadores</div>
+          </div>
+        </div>
+        <div id="devices-status"><div class="empty">Sem dados.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── DISPOSITIVOS ── -->
+  <section id="section-dispositivos" class="section">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Registar novo dispositivo</div>
+          <div class="card-subtitle">Provisionamento de hardware Pico W</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Device ID</label>
+          <input id="new-device-id" type="text" placeholder="e6614864d3583534" />
+        </div>
+        <div class="form-group">
+          <label>Localização</label>
+          <input id="new-device-loc" type="text" placeholder="Cozinha — Alimentador Principal" />
+        </div>
+        <div class="form-group" style="justify-content: flex-end;">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="adicionarDispositivo()">+ Adicionar</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Dispositivos provisionados</div>
+        <button class="btn btn-sm" onclick="loadDispositivos()">↺ Atualizar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Device ID</th>
+              <th>Localização</th>
+              <th>Estado</th>
+              <th>Last seen</th>
+              <th>Leituras</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-dispositivos">
+            <tr><td colspan="6"><div class="empty">Sem dispositivos.</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ANIMAIS ── -->
+  <section id="section-animais" class="section">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Associar animal a cartão RFID</div>
+          <div class="card-subtitle">Mapeia um cartão ao animal e tipo de ração</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Card ID (RFID)</label>
+          <input id="new-animal-card" type="text" placeholder="35-96-242-51-130" />
+        </div>
+        <div class="form-group">
+          <label>Nome do animal</label>
+          <input id="new-animal-nome" type="text" placeholder="Bobi" />
+        </div>
+        <div class="form-group">
+          <label>Tipo de ração</label>
+          <select id="new-animal-comida">
+            <option value="A">A — Alimentador vermelho</option>
+            <option value="B">B — Alimentador verde</option>
+          </select>
+        </div>
+        <div class="form-group" style="justify-content: flex-end;">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="adicionarAnimal()">+ Associar</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Animais registados</div>
+        <button class="btn btn-sm" onclick="loadAnimais()">↺ Atualizar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Card ID</th>
+              <th>Nome</th>
+              <th>Ração</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-animais">
+            <tr><td colspan="3"><div class="empty">Sem animais registados.</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── LEITURAS ── -->
+  <section id="section-leituras" class="section">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Histórico do sensor RFID</div>
+          <div class="card-subtitle">Todas as leituras registadas</div>
+        </div>
+        <button class="btn btn-sm" onclick="loadLeituras()">↺ Atualizar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Animal</th>
+              <th>Card ID</th>
+              <th>Device ID</th>
+              <th>Ração</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-leituras">
+            <tr><td colspan="6"><div class="empty">Sem leituras.</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ATUADORES ── -->
+  <section id="section-atuadores" class="section">
+    <div class="actuator-grid">
+      <div class="actuator-card a">
+        <div class="actuator-icon">🔴</div>
+        <div class="actuator-name">Alimentador A</div>
+        <div class="actuator-desc">LED Vermelho — Ração tipo A</div>
+        <button class="btn btn-trigger-a" onclick="acionarAtuador('A')">▶ Acionar agora</button>
+      </div>
+      <div class="actuator-card b">
+        <div class="actuator-icon">🟢</div>
+        <div class="actuator-name">Alimentador B</div>
+        <div class="actuator-desc">LED Verde — Ração tipo B</div>
+        <button class="btn btn-trigger-b" onclick="acionarAtuador('B')">▶ Acionar agora</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Reset de emergência</div>
+          <div class="card-subtitle">Desliga todos os atuadores imediatamente</div>
+        </div>
+      </div>
+      <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
+        Usa este controlo se um atuador ficar preso no estado ligado ou em caso de falha física no alimentador.
+      </p>
+      <button class="btn btn-danger" onclick="resetAtuadores()">⚠ Corte de emergência — desligar tudo</button>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Log de comandos</div>
+      </div>
+      <div id="atuador-log"><div class="empty">Nenhum comando enviado nesta sessão.</div></div>
+    </div>
+  </section>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+let API_URL = localStorage.getItem('pf_url') || '';
+let API_KEY = localStorage.getItem('pf_key') || '';
+
+document.getElementById('api-url-input').value = API_URL;
+document.getElementById('api-key-input').value = API_KEY;
+
+function saveConfig() {
+  API_URL = document.getElementById('api-url-input').value.replace(/\/$/, '');
+  API_KEY = document.getElementById('api-key-input').value;
+  localStorage.setItem('pf_url', API_URL);
+  localStorage.setItem('pf_key', API_KEY);
+  toast('Configuração guardada.', 'ok');
+  loadOverview();
+}
+
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  setTimeout(() => { el.className = ''; }, 2800);
+}
+
+async function api(path, method = 'GET', body = null) {
+  if (!API_URL) { toast('Configura o URL da API primeiro.', 'err'); return null; }
+  try {
+    const opts = {
+      method,
+      headers: { 'X-API-KEY': API_KEY, 'Content-Type': 'application/json' }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(API_URL + path, opts);
+    const data = await r.json();
+    if (!r.ok) { toast(data.erro || 'Erro ' + r.status, 'err'); return null; }
+    return data;
+  } catch (e) {
+    toast('Erro de ligação: ' + e.message, 'err');
+    return null;
+  }
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString('pt-PT', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+
+function shortId(id) {
+  if (!id) return '—';
+  return id.length > 12 ? id.slice(0, 8) + '…' : id;
+}
+
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'overview') loadOverview();
+  if (name === 'dispositivos') loadDispositivos();
+  if (name === 'animais') loadAnimais();
+  if (name === 'leituras') loadLeituras();
+}
+
+async function loadOverview() {
+  const [devs, animais, leituras] = await Promise.all([
+    api('/dispositivos'),
+    api('/animais'),
+    api('/leituras')
+  ]);
+  if (devs) {
+    document.getElementById('stat-dispositivos').textContent = devs.length;
+    const html = devs.length === 0
+      ? '<div class="empty">Sem dispositivos.</div>'
+      : devs.map(d => `
+        <div class="log-entry">
+          <div class="log-dot ${d.last_seen ? 'ok' : 'err'}"></div>
+          <div style="flex:1">
+            <div style="font-weight:500">${d.localizacao}</div>
+            <div style="font-size:11px;color:var(--hint)">${shortId(d.device_id)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:var(--muted)">${fmtDate(d.last_seen)}</div>
+            <div style="font-size:11px;color:var(--hint)">${d.total_leituras || 0} leituras</div>
+          </div>
+        </div>`).join('');
+    document.getElementById('devices-status').innerHTML = html;
+  }
+  if (animais) document.getElementById('stat-animais').textContent = animais.length;
+  if (leituras) {
+    document.getElementById('stat-leituras').textContent = leituras.length;
+    const hoje = leituras.filter(l => new Date(l.timestamp).toDateString() === new Date().toDateString()).length;
+    document.getElementById('stat-hoje').textContent = hoje;
+    const recent = [...leituras].reverse().slice(0, 8);
+    const html = recent.length === 0
+      ? '<div class="empty">Nenhuma leitura ainda.</div>'
+      : recent.map(l => `
+        <div class="log-entry">
+          <div class="log-dot ${l.autorizado ? 'ok' : 'err'}"></div>
+          <div style="flex:1">
+            <div style="font-weight:500">${l.nome}</div>
+            <div style="font-size:11px;color:var(--hint)">${l.card_id}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="badge ${l.autorizado ? 'badge-ok' : 'badge-err'}">${l.autorizado ? 'Autorizado' : 'Recusado'}</div>
+            <div style="font-size:11px;color:var(--hint);margin-top:4px">${fmtDate(l.timestamp)}</div>
+          </div>
+        </div>`).join('');
+    document.getElementById('log-stream').innerHTML = html;
+  }
+}
+
+async function loadDispositivos() {
+  const data = await api('/dispositivos');
+  if (!data) return;
+  const tbody = document.getElementById('tbl-dispositivos');
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty">Nenhum dispositivo registado.</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(d => `
+    <tr>
+      <td><code style="font-size:11px">${d.device_id}</code></td>
+      <td>${d.localizacao}</td>
+      <td><span class="badge badge-ok">${d.status}</span></td>
+      <td>${fmtDate(d.last_seen)}</td>
+      <td>${d.total_leituras || 0}</td>
+      <td>
+        <button class="btn btn-sm btn-danger" onclick="removerDispositivo('${d.device_id}')">Remover</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function adicionarDispositivo() {
+  const device_id = document.getElementById('new-device-id').value.trim();
+  const localizacao = document.getElementById('new-device-loc').value.trim();
+  if (!device_id) { toast('Introduz o Device ID.', 'err'); return; }
+  const r = await api('/dispositivos', 'POST', { device_id, localizacao });
+  if (r) { toast('Dispositivo registado com sucesso.', 'ok'); loadDispositivos(); }
+}
+
+async function removerDispositivo(id) {
+  if (!confirm(`Remover dispositivo ${id}?`)) return;
+  const r = await api('/dispositivos/' + id, 'DELETE');
+  if (r) { toast('Dispositivo removido.', 'ok'); loadDispositivos(); }
+}
+
+async function loadAnimais() {
+  const data = await api('/animais');
+  if (!data) return;
+  const tbody = document.getElementById('tbl-animais');
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3"><div class="empty">Nenhum animal registado.</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(a => `
+    <tr>
+      <td><code style="font-size:11px">${a.card_id}</code></td>
+      <td style="font-weight:500">${a.nome}</td>
+      <td><span class="badge badge-${a.comida.toLowerCase()}">${a.comida}</span></td>
+    </tr>`).join('');
+}
+
+async function adicionarAnimal() {
+  const card_id = document.getElementById('new-animal-card').value.trim();
+  const nome = document.getElementById('new-animal-nome').value.trim();
+  const comida = document.getElementById('new-animal-comida').value;
+  if (!card_id || !nome) { toast('Preenche o Card ID e o nome.', 'err'); return; }
+  const r = await api('/animais', 'POST', { card_id, nome, comida });
+  if (r) { toast(`${nome} associado com sucesso.`, 'ok'); loadAnimais(); }
+}
+
+async function loadLeituras() {
+  const data = await api('/leituras');
+  if (!data) return;
+  const tbody = document.getElementById('tbl-leituras');
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty">Sem leituras registadas.</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = [...data].reverse().map(l => `
+    <tr>
+      <td style="white-space:nowrap;font-size:12px;color:var(--muted)">${fmtDate(l.timestamp)}</td>
+      <td style="font-weight:500">${l.nome}</td>
+      <td><code style="font-size:11px">${l.card_id}</code></td>
+      <td><code style="font-size:11px">${shortId(l.device_id)}</code></td>
+      <td>${l.comida ? `<span class="badge badge-${l.comida.toLowerCase()}">${l.comida}</span>` : '—'}</td>
+      <td><span class="badge ${l.autorizado ? 'badge-ok' : 'badge-err'}">${l.autorizado ? 'Autorizado' : 'Recusado'}</span></td>
+    </tr>`).join('');
+}
+
+async function acionarAtuador(tipo) {
+  const r = await api('/atuador/alimentar', 'POST', { comida: tipo });
+  if (r) {
+    toast(`${r.mensagem}`, 'ok');
+    appendAtuadorLog(`Alimentador ${tipo} acionado manualmente`, 'ok');
+  }
+}
+
+async function resetAtuadores() {
+  if (!confirm('Confirmas o corte de emergência de todos os atuadores?')) return;
+  const r = await api('/atuador/reset', 'POST');
+  if (r) {
+    toast('Corte enviado. Atuadores desligados.', 'ok');
+    appendAtuadorLog('Reset de emergência executado', 'err');
+  }
+}
+
+function appendAtuadorLog(msg, type) {
+  const log = document.getElementById('atuador-log');
+  if (log.querySelector('.empty')) log.innerHTML = '';
+  const now = new Date().toLocaleTimeString('pt-PT');
+  log.innerHTML = `
+    <div class="log-entry">
+      <div class="log-dot ${type}"></div>
+      <div style="flex:1">${msg}</div>
+      <div class="log-time">${now}</div>
+    </div>` + log.innerHTML;
+}
+
+if (API_URL && API_KEY) loadOverview();
+</script>
+</body>
+</html>

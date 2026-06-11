@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: petfeeder-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: API_KEY
+        sync: false
+      - key: MQTT_BROKER
+        sync: false
+      - key: MQTT_USER
+        sync: false
+      - key: MQTT_PASS
+        sync: false
