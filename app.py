@@ -11,7 +11,7 @@ app = Flask(__name__)
 CORS(app)
 
 # ── CONFIGURAÇÕES GLOBAIS ────────────────────────────────────────
-API_KEY = os.environ.get("API_KEY", "chave-local-dev")
+API_KEY = os.environ.get("API_KEY", "petfeeder-2026")
 
 if not API_KEY:
     raise RuntimeError("API_KEY não definida nas variáveis de ambiente!")
@@ -163,7 +163,7 @@ def alimentar_manual():
         return jsonify({"erro": "Escolha 'A' ou 'B'."}), 400
 
     cmd_payload = json.dumps({"cmd": "alimentar", "tipo": comida})
-    topic = f"petfeeder/{device}/cmd" if device else "petfeeder/broadcast/cmd"
+    topic = f"petfeederIOT1/{device}/cmd" if device else "petfeederIOT1/broadcast/cmd"
     mqtt.publish(topic, cmd_payload)
 
     return jsonify({
@@ -179,7 +179,7 @@ def reset_atuadores():
     """Corte de emergência — desliga todos os atuadores via MQTT"""
     data   = request.json or {}
     device = data.get("device_id")
-    topic  = f"petfeeder/{device}/cmd" if device else "petfeeder/broadcast/cmd"
+    topic  = f"petfeederIOT1/{device}/cmd" if device else "petfeederIOT1/broadcast/cmd"
     mqtt.publish(topic, json.dumps({"cmd": "reset"}))
 
     return jsonify({
@@ -223,8 +223,8 @@ def adicionar_animal():
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("Flask MQTT: ligado ao broker!")
-        client.subscribe("petfeeder/+/leitura")
-        client.subscribe("petfeeder/+/status")
+        client.subscribe("petfeederIOT1/+/leitura")
+        client.subscribe("petfeederIOT1/+/status")
     else:
         print(f"Flask MQTT: falha de ligação (código {rc})")
 
@@ -282,7 +282,7 @@ def _processar_leitura(client, data):
     # Se autorizado, publica comando de volta para o atuador
     if autorizado:
         cmd = json.dumps({"cmd": "alimentar", "tipo": animal["comida"]})
-        client.publish(f"petfeeder/{device_id}/cmd", cmd)
+        client.publish(f"petfeederIOT1/{device_id}/cmd", cmd)
         print(f"Comando enviado: alimentar {animal['comida']} → {device_id}")
 
 
